@@ -4,7 +4,7 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Olivier Grisel <olivier.grisel@ensta.org>
 #         Mathieu Blondel <mathieu@mblondel.org>
-#         Denis A. Engemann <d.engemann@fz-juelich.de>
+#         Denis A. Engemann <denis-alexander.engemann@inria.fr>
 #         Michael Eickenberg <michael.eickenberg@inria.fr>
 #         Giorgio Patrini <giorgio.patrini@anu.edu.au>
 #
@@ -38,18 +38,18 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
 
     Parameters
     ----------
-    spectrum: array of shape (n)
+    spectrum : array of shape (n)
         Data spectrum.
-    rank: int
+    rank : int
         Tested rank value.
-    n_samples: int
+    n_samples : int
         Number of samples.
-    n_features: int
+    n_features : int
         Number of features.
 
     Returns
     -------
-    ll: float,
+    ll : float,
         The log-likelihood
 
     Notes
@@ -283,6 +283,12 @@ class PCA(_BasePCA):
     >>> print(pca.singular_values_)  # doctest: +ELLIPSIS
     [ 6.30061...]
 
+    Notes
+    -----
+    PCA uses the maximum likelihood estimate of the eigenvalues, which does not
+    include the Bessel correction, though in practice this should rarely make a
+    difference in a machine learning context.
+
     See also
     --------
     KernelPCA
@@ -307,7 +313,7 @@ class PCA(_BasePCA):
 
         Parameters
         ----------
-        X: array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features)
             Training data, where n_samples in the number of samples
             and n_features is the number of features.
 
@@ -380,6 +386,9 @@ class PCA(_BasePCA):
             return self._fit_full(X, n_components)
         elif svd_solver in ['arpack', 'randomized']:
             return self._fit_truncated(X, n_components, svd_solver)
+        else:
+            raise ValueError("Unrecognized svd_solver='{0}'"
+                             "".format(svd_solver))
 
     def _fit_full(self, X, n_components):
         """Fit the model by computing full SVD on X"""
@@ -506,12 +515,12 @@ class PCA(_BasePCA):
 
         Parameters
         ----------
-        X: array, shape(n_samples, n_features)
+        X : array, shape(n_samples, n_features)
             The data.
 
         Returns
         -------
-        ll: array, shape (n_samples,)
+        ll : array, shape (n_samples,)
             Log-likelihood of each sample under the current model
         """
         check_is_fitted(self, 'mean_')
@@ -535,12 +544,12 @@ class PCA(_BasePCA):
 
         Parameters
         ----------
-        X: array, shape(n_samples, n_features)
+        X : array, shape(n_samples, n_features)
             The data.
 
         Returns
         -------
-        ll: float
+        ll : float
             Average log-likelihood of the samples under the current model
         """
         return np.mean(self.score_samples(X))
@@ -658,7 +667,7 @@ class RandomizedPCA(BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        X: array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features)
             Training data, where n_samples in the number of samples
             and n_features is the number of features.
 
@@ -675,7 +684,7 @@ class RandomizedPCA(BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        X: array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features)
             Training vector, where n_samples in the number of samples and
             n_features is the number of features.
 

@@ -107,6 +107,7 @@ def test_collinearity():
                   [2., 2., 0.],
                   [1., 1., 0]])
     y = np.array([1., 0., 0])
+    rng = np.random.RandomState(0)
 
     f = ignore_warnings
     _, _, coef_path_ = f(linear_model.lars_path)(X, y, alpha_min=0.01)
@@ -115,7 +116,7 @@ def test_collinearity():
     assert_less((residual ** 2).sum(), 1.)  # just make sure it's bounded
 
     n_samples = 10
-    X = np.random.rand(n_samples, 5)
+    X = rng.rand(n_samples, 5)
     y = np.zeros(n_samples)
     _, _, coef_path_ = linear_model.lars_path(X, y, Gram='auto', copy_X=False,
                                               copy_Gram=False, alpha_min=0.,
@@ -365,12 +366,17 @@ def test_multitarget():
     X = diabetes.data
     Y = np.vstack([diabetes.target, diabetes.target ** 2]).T
     n_targets = Y.shape[1]
+    estimators = [
+        linear_model.LassoLars(),
+        linear_model.Lars(),
+        # regression test for gh-1615
+        linear_model.LassoLars(fit_intercept=False),
+        linear_model.Lars(fit_intercept=False),
+    ]
 
-    for estimator in (linear_model.LassoLars(), linear_model.Lars()):
+    for estimator in estimators:
         estimator.fit(X, Y)
         Y_pred = estimator.predict(X)
-        Y_dec = assert_warns(DeprecationWarning, estimator.decision_function, X)
-        assert_array_almost_equal(Y_pred, Y_dec)
         alphas, active, coef, path = (estimator.alphas_, estimator.active_,
                                       estimator.coef_, estimator.coef_path_)
         for k in range(n_targets):
