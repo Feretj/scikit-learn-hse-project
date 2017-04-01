@@ -41,10 +41,16 @@ Y_new = se.transform(X_new)  # Where X_new - new points and Y_new - thier embedd
 
 Сборка проекта:
 
-- Необходимые для сборки пакеты под Ubuntu
-  `sudo apt-get install build-essential python3-dev python3-setuptools python3-numpy python3-scipy libatlas-dev libatlas3gf-base`
-- В корне проекта:
-  `pip install`
-- Тестирование:
-  `python setup.py build_ext --inplace`
-  `nosetests -v sklearn/`
+1. Необходимые для сборки пакеты под Ubuntu
+  ```bash
+  sudo apt-get install build-essential python3-dev python3-setuptools python3-numpy python3-scipy libatlas-dev libatlas3gf-base
+  ```
+2. В корне проекта:
+  ```bash
+  pip install
+  ```
+3. Тестирование:
+  ```bash
+  python setup.py build_ext --inplace
+  nosetests -v sklearn/
+  ```
