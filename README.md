@@ -33,12 +33,18 @@ Y = se.fit_transform(X)  # Where X - dataset and Y - embedding
 Y_new = se.transform(X_new)  # Where X_new - new points and Y_new - thier embedding
 ```
 
+Зависимости:
+
+- Python (>= 2.6 or >= 3.3)
+- NumPy (>= 1.6.1)
+- SciPy (>= 0.9)
+
 Сборка проекта:
 
-1) Необходимые для сборки пакеты под Ubuntu
-  - sudo apt-get install build-essential python3-dev python3-setuptools python3-numpy python3-scipy libatlas-dev libatlas3gf-base
-2) В корне проекта:
-  - pip install
-3) Тестирование:
-  - python setup.py build_ext --inplace
-  - nosetests -v sklearn/
+- Необходимые для сборки пакеты под Ubuntu
+  `sudo apt-get install build-essential python3-dev python3-setuptools python3-numpy python3-scipy libatlas-dev libatlas3gf-base`
+- В корне проекта:
+  `pip install`
+- Тестирование:
+  `python setup.py build_ext --inplace`
+  `nosetests -v sklearn/`
