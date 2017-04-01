@@ -33,6 +33,7 @@ Y = se.fit_transform(X)  # Where X - dataset and Y - embedding
 Y_new = se.transform(X_new)  # Where X_new - new points and Y_new - thier embedding
 ```
 
+Сборка проекта:
 
 1) Необходимые для сборки пакеты под Ubuntu
   - sudo apt-get install build-essential python3-dev python3-setuptools python3-numpy python3-scipy libatlas-dev libatlas3gf-base
