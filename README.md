@@ -24,14 +24,13 @@ from sklearn import manifold
 
 ...
 
-n_points = 1000
 n_neighbors = 10
 n_components = 2
 se = manifold.SpectralEmbedding(n_components=n_components,
                                 affinity="nearest_neighbors",
                                 n_neighbors=n_neighbors)
 Y = se.fit_transform(X)  # Where X - dataset and Y - embedding
-Y_new = se.transform(X_new)  # Where X_new - new points and Y_new thier embedding
+Y_new = se.transform(X_new)  # Where X_new - new points and Y_new - thier embedding
 ```
 
 
