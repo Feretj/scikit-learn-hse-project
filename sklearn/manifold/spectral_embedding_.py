@@ -17,7 +17,7 @@ from ..utils.graph import graph_laplacian
 from ..utils.sparsetools import connected_components
 from ..utils.arpack import eigsh
 from ..metrics.pairwise import rbf_kernel
-from ..neighbors import kneighbors_graph
+from ..neighbors import kneighbors_graph, NearestNeighbors
 
 
 def _graph_connected_component(graph, node_id):
@@ -318,9 +318,10 @@ def spectral_embedding(adjacency, n_components=8, eigen_solver=None,
 
     embedding = _deterministic_vector_sign_flip(embedding)
     if drop_first:
-        return embedding[1:n_components].T
+        print(diffusion_map.shape)
+        return embedding[1:n_components].T, -lambdas, diffusion_map
     else:
-        return embedding[:n_components].T
+        return embedding[:n_components].T, -lambdas, diffusion_map
 
 
 class SpectralEmbedding(BaseEstimator):
@@ -474,7 +475,11 @@ class SpectralEmbedding(BaseEstimator):
         """
 
         X = check_array(X, ensure_min_samples=2, estimator=self)
-
+        if self.affinity == "nearest_neighbors":
+            self.nbrs_ = NearestNeighbors(n_neighbors=self.n_neighbors,
+                                          n_jobs=self.n_jobs,
+                                          algorithm='brute')
+            self.nbrs_.fit(X)
         random_state = check_random_state(self.random_state)
         if isinstance(self.affinity, six.string_types):
             if self.affinity not in set(("nearest_neighbors", "rbf",
@@ -487,10 +492,10 @@ class SpectralEmbedding(BaseEstimator):
                               "name or a callable. Got: %s") % self.affinity)
 
         affinity_matrix = self._get_affinity_matrix(X)
-        self.embedding_ = spectral_embedding(affinity_matrix,
-                                             n_components=self.n_components,
-                                             eigen_solver=self.eigen_solver,
-                                             random_state=random_state)
+        self.embedding_, self.lambdas, self.diffusion_map = spectral_embedding(affinity_matrix,
+                                                n_components=self.n_components,
+                                                eigen_solver=self.eigen_solver,
+                                                random_state=random_state)
         return self
 
     def fit_transform(self, X, y=None):
@@ -513,3 +518,13 @@ class SpectralEmbedding(BaseEstimator):
         """
         self.fit(X)
         return self.embedding_
+
+    def transform(self, X):
+        """ """
+        X = check_array(X)
+        indices = self.nbrs_.kneighbors(X, return_distance=False)
+        X_new = np.zeros((self.n_components, X.shape[0]))
+        for k in range(self.n_components):
+            X_new[k] = np.array([sum([self.diffusion_map[i][k] for i in indices[j]]) for j in range(X.shape[0])])
+            X_new[k] /= self.lambdas[k]
+        return _deterministic_vector_sign_flip(X_new.T)
