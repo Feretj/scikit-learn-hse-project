@@ -16,8 +16,9 @@ from ..utils.extmath import _deterministic_vector_sign_flip
 from ..utils.graph import graph_laplacian
 from ..utils.sparsetools import connected_components
 from ..utils.arpack import eigsh
+from ..metrics import pairwise_distances
 from ..metrics.pairwise import rbf_kernel
-from ..neighbors import kneighbors_graph, NearestNeighbors
+from ..neighbors import kneighbors_graph
 
 
 def _graph_connected_component(graph, node_id):
@@ -475,11 +476,7 @@ class SpectralEmbedding(BaseEstimator):
         """
 
         X = check_array(X, ensure_min_samples=2, estimator=self)
-        if self.affinity == "nearest_neighbors":
-            self.nbrs_ = NearestNeighbors(n_neighbors=self.n_neighbors,
-                                          n_jobs=self.n_jobs,
-                                          algorithm='brute')
-            self.nbrs_.fit(X)
+        self._fit_X = X
         random_state = check_random_state(self.random_state)
         if isinstance(self.affinity, six.string_types):
             if self.affinity not in set(("nearest_neighbors", "rbf",
@@ -492,11 +489,11 @@ class SpectralEmbedding(BaseEstimator):
                               "name or a callable. Got: %s") % self.affinity)
 
         affinity_matrix = self._get_affinity_matrix(X)
-        self.embedding_, self.lambdas, self.diffusion_map = spectral_embedding(affinity_matrix,
-                                                n_components=self.n_components,
-                                                eigen_solver=self.eigen_solver,
-                                                random_state=random_state)
-        return self
+        self.embedding_, self.lambdas, self.diffusion_map = spectral_embedding(
+            affinity_matrix,
+            n_components=self.n_components,
+            eigen_solver=self.eigen_solver,
+            random_state=random_state)
 
     def fit_transform(self, X, y=None):
         """Fit the model from data in X and transform X.
@@ -522,9 +519,12 @@ class SpectralEmbedding(BaseEstimator):
     def transform(self, X):
         """ """
         X = check_array(X)
-        indices = self.nbrs_.kneighbors(X, return_distance=False)
-        X_new = np.zeros((self.n_components, X.shape[0]))
-        for k in range(self.n_components):
-            X_new[k] = np.array([sum([self.diffusion_map[i][k] for i in indices[j]]) for j in range(X.shape[0])])
+        d = pairwise_distances(X, self._fit_X, n_jobs=self.n_jobs)
+        d_fit = np.partition(pairwise_distances(self._fit_X, n_jobs=self.n_jobs), self.n_neighbors_ - 1, axis=1)[:,self.n_neighbors_ - 1]
+        indices = np.argsort(d, axis=1)
+        X_new = np.zeros((self.n_components + 1, X.shape[0]))
+        for k in range(self.n_components + 1):
+            X_new[k] = np.array([sum([self.diffusion_map[indices[j, i]][k]*(0.5*(d[j, indices[j, i]] <= d_fit[indices[j, i]]) + 0.5) for i in range(self.n_neighbors_ + 1) if (d[j, 0] == 0 and i != 0) or (d[j, 0] != 0 and i != self.n_neighbors_)]) for j in range(X.shape[0])])
             X_new[k] /= self.lambdas[k]
-        return _deterministic_vector_sign_flip(X_new.T)
+        X_new = X_new[-1::-1]
+        return _deterministic_vector_sign_flip(X_new.T)[:, 1: self.n_components + 1]
