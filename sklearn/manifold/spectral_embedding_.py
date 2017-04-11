@@ -494,6 +494,7 @@ class SpectralEmbedding(BaseEstimator):
             n_components=self.n_components,
             eigen_solver=self.eigen_solver,
             random_state=random_state)
+        return self
 
     def fit_transform(self, X, y=None):
         """Fit the model from data in X and transform X.
