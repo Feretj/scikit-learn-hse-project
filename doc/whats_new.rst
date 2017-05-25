@@ -50,6 +50,13 @@ New features
      particularly useful for targets with an exponential trend.
      :issue:`7655` by :user:`Karan Desai <karandesai-96>`.
 
+   - Added solver ``saga`` that implements the improved version of Stochastic
+     Average Gradient, in :class:`linear_model.LogisticRegression` and
+     :class:`linear_model.Ridge`. It allows the use of L1 penalty with
+     multinomial logistic loss, and behaves marginally better than 'sag'
+     during the first epochs of ridge and logistic regression.
+     By `Arthur Mensch`_.
+
 Enhancements
 ............
 
@@ -79,6 +86,13 @@ Enhancements
      attribute of ``best_estimator_``. :issue:`7661` and :issue:`8295`
      by :user:`Alyssa Batula <abatula>`, :user:`Dylan Werner-Meier <unautre>`,
      and :user:`Stephen Hoover <stephen-hoover>`.
+
+   - Relax assumption on the data for the ``SkewedChi2Sampler``. Since the
+     Skewed-Chi2 kernel is defined on the open interval :math: `(-skewedness;
+     +\infty)^d`, the transform function should not check whether X < 0 but
+     whether ``X < -self.skewedness``. (`#7573
+     <https://github.com/scikit-learn/scikit-learn/pull/7573>`_) by `Romain
+     Brault`_.
 
    - The ``min_weight_fraction_leaf`` constraint in tree construction is now
      more efficient, taking a fast path to declare a node a leaf if its weight
@@ -156,6 +170,13 @@ Enhancements
 
    - In :class:`gaussian_process.GaussianProcessRegressor`, method ``predict`` 
      is a lot faster with ``return_std=True`` by :user:`Hadrien Bertrand <hbertrand>`.
+   - Added ability to use sparse matrices in :func:`feature_selection.f_regression`
+     with ``center=True``. :issue:`8065` by :user:`Daniel LeJeune <acadiansith>`.
+
+   - :class:`ensemble.VotingClassifier` now allow changing estimators by using
+     :meth:`ensemble.VotingClassifier.set_params`. Estimators can also be
+     removed by setting it to `None`.
+     :issue:`7674` by :user:`Yichuan Liu <yl565>`.
 
 Bug fixes
 .........
@@ -175,11 +196,16 @@ Bug fixes
    - Fixed a bug where :func:`sklearn.model_selection.BaseSearchCV.inverse_transform`
      returns self.best_estimator_.transform() instead of self.best_estimator_.inverse_transform()
      :issue:`8344` by :user:`Akshay Gupta <Akshay0724>`
+   - Fixed same issue in :func:`sklearn.grid_search.BaseSearchCV.inverse_transform`
+     :issue:`8846` by :user:`Rasmus Eriksson <MrMjauh>`
 
    - Fixed a bug where :class:`sklearn.linear_model.RandomizedLasso` and
      :class:`sklearn.linear_model.RandomizedLogisticRegression` breaks for
      sparse input.
      :issue:`8259` by :user:`Aman Dalmia <dalmia>`.
+
+   - Fixed a bug where :func:`sklearn.linear_model.RANSACRegressor.fit` may run until
+     ``max_iter`` if finds a large inlier group early. :issue:`8251` by :user:`aivision2020`.
 
    - Fixed a bug where :func:`sklearn.datasets.make_moons` gives an
      incorrect result when ``n_samples`` is odd.
@@ -246,6 +272,10 @@ Bug fixes
      obstructed pickling customizations of child-classes, when used in a
      multiple inheritance context.
      :issue:`8316` by :user:`Holger Peters <HolgerPeters>`.
+   - Fix a bug in :func:`sklearn.metrics.classification._check_targets`
+     which would return ``'binary'`` if ``y_true`` and ``y_pred`` were
+     both ``'binary'`` but the union of ``y_true`` and ``y_pred`` was
+     ``'multiclass'``. :issue:`8377` by `Loic Esteve`_.
 
    - Fix :func:`sklearn.linear_model.BayesianRidge.fit` to return 
      ridge parameter `alpha_` and `lambda_` consistent with calculated
@@ -254,6 +284,14 @@ Bug fixes
 
    - Fixed a bug in :class:`manifold.TSNE` where it stored the incorrect
      ``kl_divergence_``. :issue:`6507` by :user:`Sebastian Saeger <ssaeger>`.
+
+   - Fixed a bug in :class:`svm.OneClassSVM` where it returned floats instead of
+     integer classes. :issue:`8676` by :user:`Vathsala Achar <VathsalaAchar>`.
+
+   - Fixed a bug where :func:`sklearn.tree.export_graphviz` raised an error
+     when the length of features_names does not match n_features in the decision
+     tree.
+     :issue:`8512` by :user:`Li Li <aikinogard>`.
 
 API changes summary
 -------------------
@@ -270,6 +308,12 @@ API changes summary
      needed for the perplexity calculation. :issue:`7954` by
      :user:`Gary Foreman <garyForeman>`.
 
+   - Replace attribute ``named_steps`` ``dict`` to :class:`sklearn.utils.Bunch`
+     in :class:`sklearn.pipeline.Pipeline` to enable tab completion in interactive
+     environment. In the case conflict value on ``named_steps`` and ``dict``
+     attribute, ``dict`` behavior will be prioritized.
+     :issue:`8481` by :user:`Herilalaina Rakotoarison <herilalaina>`.
+
    - The :func:`sklearn.multioutput.MultiOutputClassifier.predict_proba`
      function used to return a 3d array (``n_samples``, ``n_classes``,
      ``n_outputs``). In the case where different target columns had different
@@ -279,22 +323,28 @@ API changes summary
      (``n_samples``, ``n_classes``) for that particular output.
      :issue:`8093` by :user:`Peter Bull <pjbull>`.
 
-    - Deprecate the ``fit_params`` constructor input to the
-      :class:`sklearn.model_selection.GridSearchCV` and
-      :class:`sklearn.model_selection.RandomizedSearchCV` in favor
-      of passing keyword parameters to the ``fit`` methods
-      of those classes. Data-dependent parameters needed for model
-      training should be passed as keyword arguments to ``fit``,
-      and conforming to this convention will allow the hyperparameter
-      selection classes to be used with tools such as
-      :func:`sklearn.model_selection.cross_val_predict`.
-      :issue:`2879` by :user:`Stephen Hoover <stephen-hoover>`.
+   - Deprecate the ``fit_params`` constructor input to the
+     :class:`sklearn.model_selection.GridSearchCV` and
+     :class:`sklearn.model_selection.RandomizedSearchCV` in favor
+     of passing keyword parameters to the ``fit`` methods
+     of those classes. Data-dependent parameters needed for model
+     training should be passed as keyword arguments to ``fit``,
+     and conforming to this convention will allow the hyperparameter
+     selection classes to be used with tools such as
+     :func:`sklearn.model_selection.cross_val_predict`.
+     :issue:`2879` by :user:`Stephen Hoover <stephen-hoover>`.
 
    - Estimators with both methods ``decision_function`` and ``predict_proba``
      are now required to have a monotonic relation between them. The
      method ``check_decision_proba_consistency`` has been added in
      **sklearn.utils.estimator_checks** to check their consistency.
      :issue:`7578` by :user:`Shubham Bhardwaj <shubham0704>`
+
+   - All tree based estimators now accept a ``min_impurity_decrease``
+     parameter in lieu of the ``min_impurity_split``, which is now deprecated.
+     The ``min_impurity_decrease`` helps stop splitting the nodes in which
+     the weighted impurity decrease from splitting is no longer alteast
+     ``min_impurity_decrease``.  :issue:`8449` by `Raghav RV_`
 
 
 .. _changes_0_18_1:
@@ -5037,3 +5087,4 @@ David Huard, Dave Morrill, Ed Schofield, Travis Oliphant, Pearu Peterson.
 .. _Anish Shah: https://github.com/AnishShah
 
 .. _Neeraj Gangwar: http://neerajgangwar.in
+.. _Arthur Mensch: https://amensch.fr
