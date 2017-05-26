@@ -533,6 +533,24 @@ class SpectralEmbedding(BaseEstimator):
         M /= np.sqrt(M.sum(axis=0))[:, np.newaxis]
         M /= dd
         M.flat[::M.shape[-1] + 1] = 1
-        print(self.lambdas)
         X_new = np.matmul(M, self.diffusion_map).T * dd
         return _deterministic_vector_sign_flip(X_new)[1:].T
+
+    def recover(self, X):
+        """ """
+        X = check_array(X)
+        d = pairwise_distances(X, self.embedding_, n_jobs=self.n_jobs, metric="euclidean")
+        s1 = np.argpartition(d, self.n_neighbors, axis=1)[:, :self.n_neighbors]
+        s2 = np.argpartition(d, self.n_neighbors, axis=0)[:self.n_neighbors]
+        M = np.zeros(d.shape)
+        for i in range(M.shape[0]):
+            M[i, s1[i]] += 0.5
+        for i in range(M.shape[1]):
+            M[s2[:, i], i] += 0.5
+        M.flat[::M.shape[-1] + 1] = 0
+        dd = np.sqrt(M.sum(axis=1))
+        M /= np.sqrt(M.sum(axis=0))[:, np.newaxis]
+        M /= dd
+        M.flat[::M.shape[-1] + 1] = 1
+        X_new = np.matmul(M, self._fit_X).T / dd
+        return X_new.T
