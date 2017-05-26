@@ -522,8 +522,7 @@ class SpectralEmbedding(BaseEstimator):
         X = check_array(X)
         d = pairwise_distances(X, self._fit_X, n_jobs=self.n_jobs, metric="euclidean")
         s1 = [set(i) for i in np.argsort(d, axis=1)[:,:self.n_neighbors]]
-        d = pairwise_distances(self._fit_X, X, n_jobs=self.n_jobs, metric="euclidean")
-        s2 = [set(i) for i in np.argsort(d, axis=1)[:,:self.n_neighbors]]
+        s2 = [set(i) for i in np.argsort(d.T, axis=1)[:,:self.n_neighbors]]
         M = np.zeros(d.shape)
         for i in range(M.shape[0]):
             for j in range(M.shape[1]):
