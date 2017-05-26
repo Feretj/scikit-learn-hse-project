@@ -167,13 +167,10 @@ def spectral_embedding(adjacency, n_components=8, eigen_solver=None,
         to be installed. It can be faster on very large, sparse problems,
         but may also lead to instabilities.
 
-    random_state : int, RandomState instance or None, optional, default: None
+    random_state : int seed, RandomState instance, or None (default)
         A pseudo random number generator used for the initialization of the
-        lobpcg eigenvectors decomposition.  If int, random_state is the seed
-        used by the random number generator; If RandomState instance,
-        random_state is the random number generator; If None, the random number
-        generator is the RandomState instance used by `np.random`. Used when
-        ``solver`` == 'amg'.
+        lobpcg eigenvectors decomposition when eigen_solver == 'amg'.
+        By default, arpack is used.
 
     eigen_tol : float, optional, default=0.0
         Stopping criterion for eigendecomposition of the Laplacian matrix
@@ -269,7 +266,8 @@ def spectral_embedding(adjacency, n_components=8, eigen_solver=None,
             lambdas, diffusion_map = eigsh(laplacian, k=n_components,
                                            sigma=1.0, which='LM',
                                            tol=eigen_tol, v0=v0)
-            embedding = diffusion_map.T[n_components::-1] * dd
+            diffusion_map = diffusion_map[:, n_components::-1]
+            embedding = diffusion_map.T * dd
         except RuntimeError:
             # When submatrices are exactly singular, an LU decomposition
             # in arpack fails. We fallback to lobpcg
@@ -322,10 +320,9 @@ def spectral_embedding(adjacency, n_components=8, eigen_solver=None,
 
     embedding = _deterministic_vector_sign_flip(embedding)
     if drop_first:
-        print(diffusion_map.shape)
-        return embedding[1:n_components].T, -lambdas, diffusion_map
+        return embedding[1:n_components].T, lambdas, diffusion_map, dd
     else:
-        return embedding[:n_components].T, -lambdas, diffusion_map
+        return embedding[:n_components].T, lambdas, diffusion_map, dd
 
 
 class SpectralEmbedding(BaseEstimator):
@@ -350,13 +347,9 @@ class SpectralEmbedding(BaseEstimator):
         to be installed. It can be faster on very large, sparse problems,
         but may also lead to instabilities.
 
-    random_state : int, RandomState instance or None, optional, default: None
+    random_state : int seed, RandomState instance, or None, default : None
         A pseudo random number generator used for the initialization of the
-        lobpcg eigenvectors.  If int, random_state is the seed used by the
-        random number generator; If RandomState instance, random_state is the
-        random number generator; If None, the random number generator is the
-        RandomState instance used by `np.random`. Used when ``solver`` ==
-        'amg'.
+        lobpcg eigenvectors decomposition when eigen_solver == 'amg'.
 
     affinity : string or callable, default : "nearest_neighbors"
         How to construct the affinity matrix.
@@ -496,7 +489,7 @@ class SpectralEmbedding(BaseEstimator):
                               "name or a callable. Got: %s") % self.affinity)
 
         affinity_matrix = self._get_affinity_matrix(X)
-        self.embedding_, self.lambdas, self.diffusion_map = spectral_embedding(
+        self.embedding_, self.lambdas, self.diffusion_map, self.dd = spectral_embedding(
             affinity_matrix,
             n_components=self.n_components,
             eigen_solver=self.eigen_solver,
@@ -527,12 +520,16 @@ class SpectralEmbedding(BaseEstimator):
     def transform(self, X):
         """ """
         X = check_array(X)
-        d = pairwise_distances(X, self._fit_X, n_jobs=self.n_jobs)
-        d_fit = np.partition(pairwise_distances(self._fit_X, n_jobs=self.n_jobs), self.n_neighbors_ - 1, axis=1)[:,self.n_neighbors_ - 1]
-        indices = np.argsort(d, axis=1)
-        X_new = np.zeros((self.n_components + 1, X.shape[0]))
-        for k in range(self.n_components + 1):
-            X_new[k] = np.array([sum([self.diffusion_map[indices[j, i]][k]*(0.5*(d[j, indices[j, i]] <= d_fit[indices[j, i]]) + 0.5) for i in range(self.n_neighbors_ + 1) if (d[j, 0] == 0 and i != 0) or (d[j, 0] != 0 and i != self.n_neighbors_)]) for j in range(X.shape[0])])
-            X_new[k] /= self.lambdas[k]
-        X_new = X_new[-1::-1]
-        return _deterministic_vector_sign_flip(X_new.T)[:, 1: self.n_components + 1]
+        d = pairwise_distances(X, self._fit_X, n_jobs=self.n_jobs, metric="euclidean")
+        s1 = [set(i) for i in np.argsort(d, axis=1)[:,:self.n_neighbors]]
+        d = pairwise_distances(self._fit_X, X, n_jobs=self.n_jobs, metric="euclidean")
+        s2 = [set(i) for i in np.argsort(d, axis=1)[:,:self.n_neighbors]]
+        M = np.zeros(d.shape)
+        for i in range(M.shape[0]):
+            for j in range(M.shape[1]):
+                M[i, j] = 0.5*((i in s2[j]) + (j in s1[i]))
+        M.flat[::M.shape[0] + 1] = 0
+        dd = np.sqrt(M.sum(axis=1))
+        M.flat[::M.shape[0] + 1] = dd
+        X_new = np.matmul(M, self.diffusion_map).T
+        return _deterministic_vector_sign_flip(X_new)[1:].T
