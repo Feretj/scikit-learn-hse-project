@@ -540,8 +540,8 @@ class SpectralEmbedding(BaseEstimator):
         """ """
         X = check_array(X)
         d = pairwise_distances(X, self.embedding_, n_jobs=self.n_jobs, metric="euclidean")
-        s1 = np.argpartition(d, self.n_neighbors, axis=1)[:, :self.n_neighbors]
-        s2 = np.argpartition(d, self.n_neighbors, axis=0)[:self.n_neighbors]
+        s1 = np.argpartition(d, self.n_neighbors - 1, axis=1)[:, :self.n_neighbors]
+        s2 = np.argpartition(d, self.n_neighbors - 1, axis=0)[:self.n_neighbors]
         M = np.zeros(d.shape)
         for i in range(M.shape[0]):
             M[i, s1[i]] += 0.5
