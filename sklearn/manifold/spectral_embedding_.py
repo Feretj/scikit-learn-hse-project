@@ -537,7 +537,17 @@ class SpectralEmbedding(BaseEstimator):
         return _deterministic_vector_sign_flip(X_new)[1:].T
 
     def inverse_transform(self, X):
-        """ """
+        """
+        Transform new points into embedding space.
+        Parameters
+        ----------
+        X : array-like, shape = [n_samples, n_features]
+        Returns
+        -------
+        X_new : array, shape = [n_samples, n_components]
+        Notes
+        -----
+        """
         X = check_array(X)
         d = pairwise_distances(X, self.embedding_, n_jobs=self.n_jobs, metric="euclidean")
         d[(d == 0)] = np.inf
