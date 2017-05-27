@@ -320,9 +320,9 @@ def spectral_embedding(adjacency, n_components=8, eigen_solver=None,
 
     embedding = _deterministic_vector_sign_flip(embedding)
     if drop_first:
-        return embedding[1:n_components].T, lambdas, diffusion_map, dd
+        return embedding[1:n_components].T, dd
     else:
-        return embedding[:n_components].T, lambdas, diffusion_map, dd
+        return embedding[:n_components].T, dd
 
 
 class SpectralEmbedding(BaseEstimator):
@@ -489,7 +489,7 @@ class SpectralEmbedding(BaseEstimator):
                               "name or a callable. Got: %s") % self.affinity)
 
         affinity_matrix = self._get_affinity_matrix(X)
-        self.embedding_, self.lambdas, self.diffusion_map, self.dd = spectral_embedding(
+        self.embedding_, self.dd = spectral_embedding(
             affinity_matrix,
             n_components=self.n_components,
             eigen_solver=self.eigen_solver,
@@ -540,9 +540,9 @@ class SpectralEmbedding(BaseEstimator):
         s = np.partition(d1, self.n_neighbors - 1, axis=0)[self.n_neighbors - 1]
         for i in range(M.shape[1]):
             M[(d[:, i] <= s[i]), i] += 0.5
-        M /= self.dd
-        X_new = np.matmul(M, self.diffusion_map).T
-        return _deterministic_vector_sign_flip(X_new)[1:].T
+        M /= self.dd*self.dd
+        X_new = np.matmul(M, self.embedding_).T
+        return X_new.T
 
     def inverse_transform(self, X):
         """
