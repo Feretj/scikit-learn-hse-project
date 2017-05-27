@@ -529,14 +529,14 @@ class SpectralEmbedding(BaseEstimator):
         d1 = pairwise_distances(self._fit_X, n_jobs=self.n_jobs, metric="euclidean")
         s = np.partition(d1, self.n_neighbors - 1, axis=0)[self.n_neighbors - 1]
         for i in range(M.shape[1]):
-            M[(d[:,i] <= s[i]), i] += 0.5
+            M[(d[:, i] <= s[i]), i] += 0.5
         dd = np.sqrt(M.sum(axis=1))
         M /= self.dd
         M /= dd[:, np.newaxis]
         X_new = np.matmul(M, self.diffusion_map).T * dd
         return _deterministic_vector_sign_flip(X_new)[1:].T
 
-    def recover(self, X):
+    def inverse_transform(self, X):
         """ """
         X = check_array(X)
         d = pairwise_distances(X, self.embedding_, n_jobs=self.n_jobs, metric="euclidean")
@@ -548,9 +548,9 @@ class SpectralEmbedding(BaseEstimator):
         d1 = pairwise_distances(self.embedding_, n_jobs=self.n_jobs, metric="euclidean")
         s = np.partition(d1, self.n_neighbors - 1, axis=0)[self.n_neighbors - 1]
         for i in range(M.shape[1]):
-            M[(d[:,i] <= s[i]), i] += 0.5
+            M[(d[:, i] <= s[i]), i] += 0.5
         dd = np.sqrt(M.sum(axis=1))
         M /= self.dd
         M /= dd[:, np.newaxis]
-        X_new = np.matmul(M, self._fit_X).T / dd
+        X_new = np.matmul(M, self._fit_X).T
         return X_new.T
