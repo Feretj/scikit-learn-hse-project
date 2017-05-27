@@ -530,8 +530,8 @@ class SpectralEmbedding(BaseEstimator):
             M[s2[:, i], i] += 0.5
         M.flat[::M.shape[-1] + 1] = 0
         dd = np.sqrt(M.sum(axis=1))
-        M /= np.sqrt(M.sum(axis=0))[:, np.newaxis]
-        M /= dd
+        M /= np.sqrt(M.sum(axis=0))
+        M /= dd[:, np.newaxis]
         M.flat[::M.shape[-1] + 1] = 1
         X_new = np.matmul(M, self.diffusion_map).T * dd
         return _deterministic_vector_sign_flip(X_new)[1:].T
@@ -549,8 +549,8 @@ class SpectralEmbedding(BaseEstimator):
             M[s2[:, i], i] += 0.5
         M.flat[::M.shape[-1] + 1] = 0
         dd = np.sqrt(M.sum(axis=1))
-        M /= np.sqrt(M.sum(axis=0))[:, np.newaxis]
-        M /= dd
+        M /= np.sqrt(M.sum(axis=0))
+        M /= dd[:, np.newaxis]
         M.flat[::M.shape[-1] + 1] = 1
         X_new = np.matmul(M, self._fit_X).T / dd
         return X_new.T
