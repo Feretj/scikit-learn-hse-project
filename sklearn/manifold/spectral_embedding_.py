@@ -541,8 +541,7 @@ class SpectralEmbedding(BaseEstimator):
         for i in range(M.shape[1]):
             M[(d[:, i] <= s[i]), i] += 0.5
         M /= self.dd*self.dd
-        X_new = np.matmul(M, self.embedding_).T
-        return X_new.T
+        return np.matmul(M, self.embedding_)
 
     def inverse_transform(self, X):
         """
@@ -567,8 +566,6 @@ class SpectralEmbedding(BaseEstimator):
         s = np.partition(d1, self.n_neighbors - 1, axis=0)[self.n_neighbors - 1]
         for i in range(M.shape[1]):
             M[(d[:, i] <= s[i]), i] += 0.5
-        dd = np.sqrt(M.sum(axis=1))
         M /= self.dd
-        M /= dd[:, np.newaxis]
-        X_new = np.matmul(M, self._fit_X).T
-        return X_new.T
+        M /= np.sqrt(M.sum(axis=1))[:, np.newaxis]
+        return np.matmul(M, self._fit_X)
