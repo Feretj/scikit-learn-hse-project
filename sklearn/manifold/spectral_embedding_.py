@@ -503,7 +503,7 @@ class SpectralEmbedding(BaseEstimator):
                               "name or a callable. Got: %s") % self.affinity)
 
         affinity_matrix = self._get_affinity_matrix(X)
-        self.embedding_, self.dd = spectral_embedding(
+        self.embedding_, self._dd = spectral_embedding(
             affinity_matrix,
             n_components=self.n_components,
             eigen_solver=self.eigen_solver,
@@ -566,7 +566,7 @@ class SpectralEmbedding(BaseEstimator):
                                       "'nearest_neighbors' affinity."
                                        ) % self.affinity)
 
-        M /= self.dd * self.dd
+        M /= self._dd * self._dd
         return np.matmul(M, self.embedding_)
 
     def inverse_transform(self, X):
@@ -591,6 +591,6 @@ class SpectralEmbedding(BaseEstimator):
         s = np.partition(d1, self.n_neighbors - 1, axis=0)[self.n_neighbors - 1]
         for i in range(M.shape[1]):
             M[(d[:, i] <= s[i]), i] += 0.5
-        M /= self.dd
+        M /= self._dd * self._dd
         M /= np.sqrt(M.sum(axis=1))[:, np.newaxis]
-        return np.matmul(M, self._fit_X)
+        return np.matmul(M, self.training_data_)
