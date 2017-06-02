@@ -522,10 +522,10 @@ class SpectralEmbedding(BaseEstimator):
         Transform new points into embedding space.
         Parameters
         ----------
-        X : array-like, shape = [n_samples, n_features]
+        X : array-like, shape = (n_samples, n_features)
         Returns
         -------
-        X_new : array, shape = [n_samples, n_components]
+        X_new : array, shape = (n_samples, n_components)
         Notes
         -----
         """
@@ -548,10 +548,10 @@ class SpectralEmbedding(BaseEstimator):
         Transform points from embedding space into original.
         Parameters
         ----------
-        X : array-like, shape = [n_samples, n_features]
+        X : array-like, shape = (n_samples, n_components)
         Returns
         -------
-        X_new : array, shape = [n_samples, n_components]
+        X_new : array, shape = (n_samples, n_features)
         Notes
         -----
         """

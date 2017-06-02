@@ -11,9 +11,9 @@ The project over 2 year of HSE Faculty of Computer Science 2016-2017
 
 КТ1: Документация по проекту и репозиторий
 
-КТ2: "Out of sample" для алгоритма Multi-Dimensional Scaling, Spectral Embedding
+КТ2: "Out of sample" для алгоритма Spectral Embedding
 
-КТ3: Recover of "Out of sample"
+КТ3: Recover of "Out of sample" для SE
 
 Реализованно OoS для Spectral Embedding для ядра KNN
 
@@ -32,6 +32,14 @@ se = manifold.SpectralEmbedding(n_components=n_components,
 Y = se.fit_transform(X)  # Where X - dataset and Y - embedding
 Y_new = se.transform(X_new)  # Where X_new - new points and Y_new - thier embedding
 ```
+
+Также было реализованно Recover для SE с ядром KNN
+
+```python
+X = se.inverse_transform(Y)
+```
+
+Все задачи выполнены и протестированы
 
 Зависимости:
 
