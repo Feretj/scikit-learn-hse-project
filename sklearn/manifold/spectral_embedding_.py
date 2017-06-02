@@ -581,16 +581,21 @@ class SpectralEmbedding(BaseEstimator):
         X_new : array, shape (n_samples, n_features)
         """
         X = check_array(X)
-        d = pairwise_distances(X, self.embedding_, n_jobs=self.n_jobs, metric="euclidean")
+        d = pairwise_distances(X, self.embedding_, n_jobs=self.n_jobs,
+                               metric="euclidean")
         d[(d == 0)] = np.inf
         M = np.zeros(d.shape)
-        s = np.argpartition(d, self.n_neighbors - 2, axis=1)[:, :self.n_neighbors - 1]
+        s = np.argpartition(d, self.n_neighbors - 2,
+                            axis=1)[:, :self.n_neighbors - 1]
         for i in range(M.shape[0]):
             M[i, s[i]] += 0.5
-        d1 = pairwise_distances(self.embedding_, n_jobs=self.n_jobs, metric="euclidean")
-        s = np.partition(d1, self.n_neighbors - 1, axis=0)[self.n_neighbors - 1]
+        d1 = pairwise_distances(self.embedding_, n_jobs=self.n_jobs,
+                                metric="euclidean")
+        s = np.partition(d1, self.n_neighbors - 1,
+                         axis=0)[self.n_neighbors - 1]
         for i in range(M.shape[1]):
             M[(d[:, i] <= s[i]), i] += 0.5
+
         M /= self._dd * self._dd
         M /= np.sqrt(M.sum(axis=1))[:, np.newaxis]
         return np.matmul(M, self.training_data_)
