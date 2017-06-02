@@ -537,11 +537,11 @@ class SpectralEmbedding(BaseEstimator):
 
         Parameters
         ----------
-        X : array-like, shape = (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features)
 
         Returns
         -------
-        X_new : array, shape = (n_samples, n_components)
+        X_new : array, shape (n_samples, n_components)
         """
         X = check_array(X)
 
@@ -574,11 +574,11 @@ class SpectralEmbedding(BaseEstimator):
 
         Parameters
         ----------
-        X : array-like, shape = (n_samples, n_components)
+        X : array-like, shape (n_samples, n_components)
 
         Returns
         -------
-        X_new : array, shape = (n_samples, n_features)
+        X_new : array, shape (n_samples, n_features)
         """
         X = check_array(X)
         d = pairwise_distances(X, self.embedding_, n_jobs=self.n_jobs, metric="euclidean")
