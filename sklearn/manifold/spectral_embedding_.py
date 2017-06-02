@@ -133,7 +133,8 @@ def _set_diag(laplacian, value, norm_laplacian):
 
 def spectral_embedding(adjacency, n_components=8, eigen_solver=None,
                        random_state=None, eigen_tol=0.0,
-                       norm_laplacian=True, drop_first=True):
+                       norm_laplacian=True, drop_first=True,
+                       return_lap_diag=False):
     """Project the sample on the first eigenvectors of the graph Laplacian.
 
     The adjacency matrix is used to compute a normalized graph Laplacian
@@ -185,10 +186,16 @@ def spectral_embedding(adjacency, n_components=8, eigen_solver=None,
     norm_laplacian : bool, optional, default=True
         If True, then compute normalized Laplacian.
 
+    return_lap_diag : bool, optional, default=False
+        If True, then return diagonal from laplacian.
+
     Returns
     -------
     embedding : array, shape=(n_samples, n_components)
         The reduced samples.
+    diag : ndarray
+        The length-N diagonal of the laplacian matrix.
+        diag is returned only if return_lap_diag is True.
 
     Notes
     -----
@@ -320,9 +327,13 @@ def spectral_embedding(adjacency, n_components=8, eigen_solver=None,
 
     embedding = _deterministic_vector_sign_flip(embedding)
     if drop_first:
-        return embedding[1:n_components].T, dd
+        embedding = embedding[1:n_components].T
     else:
-        return embedding[:n_components].T, dd
+        embedding = embedding[:n_components].T
+    if return_lap_diag:
+        return embedding, dd
+    else:
+        return embedding
 
 
 class SpectralEmbedding(BaseEstimator):
@@ -378,6 +389,9 @@ class SpectralEmbedding(BaseEstimator):
 
     affinity_matrix_ : array, shape = (n_samples, n_samples)
         Affinity_matrix constructed from samples or precomputed.
+
+    training_data_ : array-like, shape (n_samples, n_features)
+        Stores the training data.
 
     References
     ----------
@@ -476,7 +490,7 @@ class SpectralEmbedding(BaseEstimator):
         """
 
         X = check_array(X, ensure_min_samples=2, estimator=self)
-        self._fit_X = X
+        self.training_data_ = X
         random_state = check_random_state(self.random_state)
         if isinstance(self.affinity, six.string_types):
             if self.affinity not in set(("nearest_neighbors", "rbf",
@@ -493,7 +507,8 @@ class SpectralEmbedding(BaseEstimator):
             affinity_matrix,
             n_components=self.n_components,
             eigen_solver=self.eigen_solver,
-            random_state=random_state)
+            random_state=random_state,
+            return_lap_diag=True)
         return self
 
     def fit_transform(self, X, y=None):
@@ -518,42 +533,52 @@ class SpectralEmbedding(BaseEstimator):
         return self.embedding_
 
     def transform(self, X):
-        """
-        Transform new points into embedding space.
+        """Transform new points into embedding space.
+
         Parameters
         ----------
         X : array-like, shape = (n_samples, n_features)
+
         Returns
         -------
         X_new : array, shape = (n_samples, n_components)
-        Notes
-        -----
         """
         X = check_array(X)
-        d = pairwise_distances(X, self._fit_X, n_jobs=self.n_jobs, metric="euclidean")
-        d[(d == 0)] = np.inf
-        M = np.zeros(d.shape)
-        s = np.argpartition(d, self.n_neighbors - 2, axis=1)[:, :self.n_neighbors - 1]
-        for i in range(M.shape[0]):
-            M[i, s[i]] += 0.5
-        d1 = pairwise_distances(self._fit_X, n_jobs=self.n_jobs, metric="euclidean")
-        s = np.partition(d1, self.n_neighbors - 1, axis=0)[self.n_neighbors - 1]
-        for i in range(M.shape[1]):
-            M[(d[:, i] <= s[i]), i] += 0.5
-        M /= self.dd*self.dd
+
+        if (self.affinity == "nearest_neighbors"):
+            d = pairwise_distances(X, self.training_data_, n_jobs=self.n_jobs,
+                                   metric="euclidean")
+            d[(d == 0)] = np.inf
+            M = np.zeros(d.shape)
+            kneighbors = np.argpartition(d, self.n_neighbors - 2,
+                                         axis=1)[:, :self.n_neighbors - 1]
+            for i in range(M.shape[0]):
+                M[i, kneighbors[i]] += 0.5
+            kth_d = np.partition(pairwise_distances(self.training_data_,
+                                                    n_jobs=self.n_jobs,
+                                                    metric="euclidean"),
+                                 self.n_neighbors - 1,
+                                 axis=0)[self.n_neighbors - 1]
+            for i in range(M.shape[1]):
+                M[(d[:, i] <= kth_d[i]), i] += 0.5
+        else:
+            raise NotImplementedError(("%s is not supported. Expected "
+                                      "'nearest_neighbors' affinity."
+                                       ) % self.affinity)
+
+        M /= self.dd * self.dd
         return np.matmul(M, self.embedding_)
 
     def inverse_transform(self, X):
-        """
-        Transform points from embedding space into original.
+        """Transform points from embedding space into original.
+
         Parameters
         ----------
         X : array-like, shape = (n_samples, n_components)
+
         Returns
         -------
         X_new : array, shape = (n_samples, n_features)
-        Notes
-        -----
         """
         X = check_array(X)
         d = pairwise_distances(X, self.embedding_, n_jobs=self.n_jobs, metric="euclidean")
